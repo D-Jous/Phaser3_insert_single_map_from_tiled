@@ -1,0 +1,162 @@
+<!--
+Intégration d'une carte créée sous tiled dans phaser
+Ce code est une suite du tutoriel "making your first phaser 3 game"
+disponible ici : https://phaser.io/tutorials/making-your-first-phaser-3-game
+
+et qu'il est préférable de maitriser avant.
+
+Auteur : Benoit Darties
+benoit.darties@gmail.com
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Une carte créée avec Tiled, intégrée à Phaser 3</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.17.0/dist/phaser.js"></script>
+    <style type="text/css">
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      var config = {
+        type: Phaser.AUTO,
+        // les dimensions de l'écran
+        width: 800,
+        height: 600,
+        physics: {
+          default: "arcade",
+          arcade: {
+            gravity: { y: 300 },
+            debug: false
+          }
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update
+        }
+      };
+
+      // création du jeu
+      var game = new Phaser.Game(config);
+
+      var player; // variable pour le personnage de jeu
+      var cursors; // variable pour le clavier
+
+      function preload() {
+        // chargement du personnage
+        this.load.spritesheet("dude", "assets/dude.png", {
+          frameWidth: 32,
+          frameHeight: 48
+        });
+        // chargement tuiles de jeu
+        this.load.image("Phaser_tuilesdejeu", "assets/tuilesJeu.png");
+
+        // chargement de la carte
+        this.load.tilemapTiledJSON("carte", "assets/map.json");
+      }
+
+      function create() {
+        // chargmeent de la carte du niveau
+        const carteDuNiveau = this.add.tilemap("carte");
+        // chargement du jeu de tuiles
+        const tileset = carteDuNiveau.addTilesetImage(
+          "tuiles_de_jeu",
+          "Phaser_tuilesdejeu"
+        );
+
+        // chargement du calque "calque_backgroung"
+        const backgroundLayer = carteDuNiveau.createStaticLayer(
+          "calque_background",
+          tileset
+        );
+
+        // chargement du second calque "calque_backgroung"
+        const backgroundLayer2 = carteDuNiveau.createStaticLayer(
+          "calque_background_2",
+          tileset
+        );
+
+        // chargement du calque "calque_plateformes""
+        const plateformes = carteDuNiveau.createStaticLayer(
+          "calque_plateformes",
+          tileset
+        );
+        // définition des objets solides avec lesquels le personnage va se cogner
+        plateformes.setCollisionByProperty({ estSolide: true });
+
+        // création du personnage de jeu et positionnement
+        player = this.physics.add.sprite(100, 400, "dude");
+        player.setBounce(0.2);
+
+        // ajout du modèle de collision entre le personnage et les plates-formes
+        this.physics.add.collider(player, plateformes);
+
+        // ajout du modèle de collision entre le personnage et le monde
+        player.setCollideWorldBounds(true);
+
+        // animation pour tourner à gauche
+        this.anims.create({
+          key: "left",
+          frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
+          frameRate: 10,
+          repeat: -1
+        });
+
+        // animation lorsque le personnage n'avance pas
+        this.anims.create({
+          key: "turn",
+          frames: [{ key: "dude", frame: 4 }],
+          frameRate: 20
+        });
+
+        // animation pour tourner à droite
+        this.anims.create({
+          key: "right",
+          frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
+          frameRate: 10,
+          repeat: -1
+        });
+
+        // création d'un écouteur sur le clavier
+        cursors = this.input.keyboard.createCursorKeys();
+        // redimentionnement du monde avec les dimensions calculées via tiled
+        this.physics.world.setBounds(0, 0, 3200, 640);
+        //  ajout du champs de la caméra de taille identique à celle du monde
+        this.cameras.main.setBounds(0, 0, 3200, 640);
+        // ancrage de la caméra sur le joueur
+        this.cameras.main.startFollow(player);
+      }
+
+      function update() {
+        // définitinon des mouvements du personnage
+
+        // a gauche
+        if (cursors.left.isDown) {
+          player.setVelocityX(-160);
+          player.anims.play("left", true);
+
+          // à droite
+        } else if (cursors.right.isDown) {
+          player.setVelocityX(160);
+          player.anims.play("right", true);
+        }
+        // immoobile
+        else {
+          player.setVelocityX(0);
+          player.anims.play("turn");
+        }
+        // en saut (important : blocked doown au lieu de tuoching down)
+        if (cursors.up.isDown && player.body.blocked.down) {
+          player.setVelocityY(-200);
+        }
+      }
+    </script>
+  </body>
+</html>
